@@ -21,11 +21,24 @@ export class UsuarioController {
   }
 
   @Get()
-  findAll(@Query('fields') fields: string) {
+  async findAll(@Query('fields') fields: string) {
+    fields = fields ?? "idUsuario, email, nombre";
     let requestFields = fields.split(',');
 
     requestFields = requestFields.map(val => val.trim());
-    return this.usuarioService.findAll(requestFields);
+    
+    const usuarios = await this.usuarioService.findAll();
+
+    // return usuarios;
+    return usuarios.map(usuario => {
+      let userObj = {};
+      for (const field of requestFields) {
+        userObj[field] = usuario[field];
+      }
+      delete userObj['password'];
+
+      return userObj;
+    });
   }
 
   @Get(':id')
@@ -36,7 +49,7 @@ export class UsuarioController {
   @Put(':id')
   update(@Param('id') id: number, @Body() updateUsuarioDto: UpdateUsuarioDto) {
     if (+id !== updateUsuarioDto.idUsuario) {
-      throw new UnauthorizedException(`Los IDs de usuario no coinciden`);
+      throw new BadRequestException(`Los IDs de usuario no coinciden`);
     }
 
     return this.usuarioService.update(+id, updateUsuarioDto);

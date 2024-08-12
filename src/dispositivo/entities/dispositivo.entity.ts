@@ -10,8 +10,11 @@ export class Dispositivo {
     modelo: string;
 
     @Column()
-    ubicacion: string;
+    alias?: string;
 
     @Column()
-    icon: string;
+    ubicacion?: string;
+
+    @Column()
+    icon?: string;
 }

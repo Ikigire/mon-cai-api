@@ -7,7 +7,7 @@ import { Usuario } from "src/usuario/entities/usuario.entity";
 export class Dispositivo_Usuario {
 
     @PrimaryGeneratedColumn()
-    id: number;
+    id?: number;
 
     @Column()
     @ManyToMany( type => Dispositivo, dispositivo => dispositivo.idDispositivo )

@@ -18,6 +18,12 @@ export class UsuarioService {
     private dataSource: DataSource
   ) { }
 
+  /**
+   * Crea un nuevo usuario y lo define como administrador en caso de ser necesario
+   * @param createUsuarioDto Objeto que contiene los datos del usuario a registrar
+   * @returns Promesa con la información del nuevo Usuario creado
+   * @throws ConflictException en caso de que no sea posible registrar al usuario
+   */
   async create(createUsuarioDto: CreateUsuarioDto) {
     const queryRunner = this.dataSource.createQueryRunner()
 
@@ -71,25 +77,37 @@ export class UsuarioService {
     return { ...user, isAdmin };
   }
 
-  async findAll(fields: string[] = ['idUsuario', 'nombre', 'email']) {
-    let usuarios = await this.usuarioRepository.find()
-
-    // return usuarios;
-    return usuarios.map(usuario => {
-      let userObj = {};
-      for (const field of fields) {
-        userObj[field] = usuario[field];
-      }
-      delete userObj['password'];
-
-      return userObj;
-    });
+  /**
+   * Extrae toda lalista de usuarios de la base de datos y la retorna
+   * @returns Promesa con la lista de todos los ususario
+   */
+  findAll() {
+    return this.usuarioRepository.find();
   }
 
-  findOne(idUsuario: number) {
-    return this.usuarioRepository.findOneBy({ idUsuario });
+  /**
+   * Busca un Usuario por su ID dentro de la base de datos
+   * @param idUsuario ID del Usuario al cual va a buscar
+   * @returns Promesa con la información del Usuario, incluyendo una bandera que indica si el Usuario es administrador
+   * @throws NotFoundException en caso de no encontrar un usuario con el ID ingresado
+   */
+  async findOne(idUsuario: number) {
+    const usuario = await this.usuarioRepository.findOneBy({ idUsuario });
+
+    if (!usuario) {
+      throw new NotFoundException(`No se encontró Usuario alguno con el ID ${idUsuario}`);
+    }
+
+    const admin = this.adminRepository.findOneBy({idUsuario});
+
+    return {...usuario, isAdmin: Boolean(admin)};
   }
 
+  /**
+   * Realiza la operación de búsqueda de usuario por el email y la contraseña
+   * @param loginData Información del usuario que intentat logearse
+   * @returns Promesa con la información del usuario
+   */
   async login(loginData: LoginDto) {
     const { email, password } = loginData;
     const usuario = await this.usuarioRepository.findOneBy({ email })
@@ -106,9 +124,15 @@ export class UsuarioService {
     const admin = await this.adminRepository.findOneBy({idUsuario: usuario.idUsuario});
     delete usuario.password;
 
-    return {...usuario, idAdmin: Boolean(admin)};
+    return {...usuario, isAdmin: Boolean(admin)};
   }
 
+  /**
+   * Actualiza la información del usuario en la Base de datos
+   * @param idUsuario ID del usuario al cual se le actualizarán los datos
+   * @param updateUsuarioDto Objeto con la información del usuario a almacenar
+   * @returns Promesa con la nueva infomación del usuario
+   */
   async update(idUsuario: number, updateUsuarioDto: UpdateUsuarioDto) {
     const usuario = await this.usuarioRepository.findOneBy({idUsuario})
     
@@ -131,7 +155,7 @@ export class UsuarioService {
     await queryRunner.startTransaction();
 
     try {
-      const result = await queryRunner.manager.update<Usuario>(Usuario, usuario, updateUsuarioDto);
+      const result = await queryRunner.manager.update<Usuario>(Usuario, updateUsuarioDto, updateUsuarioDto);
       console.log(result);
       
       await queryRunner.commitTransaction();
@@ -149,6 +173,11 @@ export class UsuarioService {
     return updateUsuarioDto;
   }
 
+  /**
+   * Método para hacer a un usuario administrador
+   * @param adminDto 
+   * @returns 
+   */
   async makeAdmin(adminDto: MakeAdminDto) {
     const { requester: idAdmin, newAdmin: idUsuario } = adminDto;
     let admin = await this.adminRepository.findOneBy({idUsuario: idAdmin});
@@ -179,6 +208,11 @@ export class UsuarioService {
     return {...usuario, isAdmin: true};
   }
 
+  /**
+   * Método que permite eliminar Usuarios de la base de Datos
+   * @param idUsuario ID del usaurio a eliminar
+   * @returns Promesa con el Usuario eliminado
+   */
   async remove(idUsuario: number) {
     const usuario = await this.usuarioRepository.findOneBy({idUsuario});
     const admin   = await this.adminRepository.findOneBy({idUsuario});

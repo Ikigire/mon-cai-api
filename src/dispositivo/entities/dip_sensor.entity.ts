@@ -6,11 +6,11 @@ import { Sensor } from "./sensor.entity";
 export class Dispositivo_Sensor {
 
     @PrimaryGeneratedColumn()
-    id: number;
+    id?: number;
 
     @Column()
     @OneToMany(type => Dispositivo, dispositivo => dispositivo.idDispositivo)
-    idDIspositivo: string;
+    idDispositivo: string;
 
     @Column()
     @OneToMany(type => Sensor, sensor => sensor.tipo)

@@ -12,7 +12,8 @@ import { Administrador } from './entities/administrador.entity';
     TypeOrmModule.forFeature([Usuario, Administrador])
   ],
   exports: [
-    TypeOrmModule
+    TypeOrmModule,
+    UsuarioService
   ]
 })
 export class UsuarioModule {}
