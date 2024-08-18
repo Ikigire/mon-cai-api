@@ -98,9 +98,9 @@ export class UsuarioService {
       throw new NotFoundException(`No se encontró Usuario alguno con el ID ${idUsuario}`);
     }
 
-    const admin = this.adminRepository.findOneBy({idUsuario});
+    const admin = this.adminRepository.findOneBy({ idUsuario });
 
-    return {...usuario, isAdmin: Boolean(admin)};
+    return { ...usuario, isAdmin: Boolean(admin) };
   }
 
   /**
@@ -121,10 +121,10 @@ export class UsuarioService {
     }
 
     // Revisando si el usuario es Administrador
-    const admin = await this.adminRepository.findOneBy({idUsuario: usuario.idUsuario});
+    const admin = await this.adminRepository.findOneBy({ idUsuario: usuario.idUsuario });
     delete usuario.password;
 
-    return {...usuario, isAdmin: Boolean(admin)};
+    return { ...usuario, isAdmin: Boolean(admin) };
   }
 
   /**
@@ -134,9 +134,9 @@ export class UsuarioService {
    * @returns Promesa con la nueva infomación del usuario
    */
   async update(idUsuario: number, updateUsuarioDto: UpdateUsuarioDto) {
-    const usuario = await this.usuarioRepository.findOneBy({idUsuario})
-    
-    if (!usuario){
+    const usuario = await this.usuarioRepository.findOneBy({ idUsuario })
+
+    if (!usuario) {
       throw new NotFoundException(`No existe el usuario conel ID ${idUsuario}`)
     }
 
@@ -157,14 +157,14 @@ export class UsuarioService {
     try {
       const result = await queryRunner.manager.update<Usuario>(Usuario, updateUsuarioDto, updateUsuarioDto);
       console.log(result);
-      
+
       await queryRunner.commitTransaction();
     } catch (error) {
       // console.log(error);
-      
+
       await queryRunner.rollbackTransaction();
       await queryRunner.release();
-      
+
       const { sqlMessage } = error;
       throw new ConflictException(sqlMessage ?? `No fue posible actualizar al usuario con email ${usuario.email}`);
     } finally {
@@ -180,32 +180,41 @@ export class UsuarioService {
    */
   async makeAdmin(adminDto: MakeAdminDto) {
     const { requester: idAdmin, newAdmin: idUsuario } = adminDto;
-    let admin = await this.adminRepository.findOneBy({idUsuario: idAdmin});
+    let admin = await this.adminRepository.findOneBy({ idUsuario: idAdmin });
 
     if (!admin) {
       throw new UnauthorizedException(`Debe tener derechos de administrador para hacer un usuario administrador`);
     }
-    
-    const usuario = await this.usuarioRepository.findOneBy({idUsuario});
-    if (!usuario){
+
+    const usuario = await this.usuarioRepository.findOneBy({ idUsuario });
+    if (!usuario) {
       throw new NotFoundException(`El usuario con el ID ${idUsuario} no existe en la base de datos`);
     }
 
-    admin = await this.adminRepository.findOneBy({idUsuario});
+    admin = await this.adminRepository.findOneBy({ idUsuario });
 
     if (admin) {
-      throw new ConflictException(`El usuario con el ID ${idUsuario} ya es administrador`);
+      try {
+        const { idAdministrador } = admin;
+        this.adminRepository.delete({ idAdministrador });
+      } catch (error) {
+        const { sqlMessage } = error;
+        throw new ConflictException(sqlMessage ?? `No fue possible hacer que el usuario con el ID ${idUsuario} sea administrador`)
+      }
+
+      delete usuario.password;
+      return { ...usuario, isAdmin: false };
     }
-    
+
     try {
-      await this.adminRepository.insert({idUsuario});
+      await this.adminRepository.insert({ idUsuario });
     } catch (error) {
       const { sqlMessage } = error;
       throw new ConflictException(sqlMessage ?? `No fue possible hacer que el usuario con el ID ${idUsuario} sea administrador`)
     }
-    
+
     delete usuario.password;
-    return {...usuario, isAdmin: true};
+    return { ...usuario, isAdmin: true };
   }
 
   /**
@@ -214,8 +223,8 @@ export class UsuarioService {
    * @returns Promesa con el Usuario eliminado
    */
   async remove(idUsuario: number) {
-    const usuario = await this.usuarioRepository.findOneBy({idUsuario});
-    const admin   = await this.adminRepository.findOneBy({idUsuario});
+    const usuario = await this.usuarioRepository.findOneBy({ idUsuario });
+    const admin = await this.adminRepository.findOneBy({ idUsuario });
 
     if (!usuario) {
       throw new NotFoundException('El usuario no existe o ya fue eliminado');
@@ -229,7 +238,7 @@ export class UsuarioService {
       if (admin) {
         await queryRunner.manager.delete<Administrador>(Administrador, admin);
       }
-      
+
       await queryRunner.manager.delete<Usuario>(Usuario, usuario);
 
       await queryRunner.commitTransaction();
@@ -242,7 +251,7 @@ export class UsuarioService {
     } finally {
       queryRunner.release();
     }
-    
-    return {...usuario, isAdmin: Boolean(admin)};
+
+    return { ...usuario, isAdmin: Boolean(admin) };
   }
 }
