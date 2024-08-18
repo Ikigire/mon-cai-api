@@ -98,7 +98,7 @@ export class UsuarioService {
       throw new NotFoundException(`No se encontró Usuario alguno con el ID ${idUsuario}`);
     }
 
-    const admin = this.adminRepository.findOneBy({ idUsuario });
+    const admin = await this.adminRepository.findOneBy({ idUsuario });
 
     return { ...usuario, isAdmin: Boolean(admin) };
   }
