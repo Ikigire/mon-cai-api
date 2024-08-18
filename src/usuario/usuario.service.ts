@@ -155,7 +155,7 @@ export class UsuarioService {
     await queryRunner.startTransaction();
 
     try {
-      const result = await queryRunner.manager.update<Usuario>(Usuario, updateUsuarioDto, updateUsuarioDto);
+      const result = await queryRunner.manager.update<Usuario>(Usuario, {idUsuario}, updateUsuarioDto);
       console.log(result);
 
       await queryRunner.commitTransaction();
