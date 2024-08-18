@@ -167,10 +167,11 @@ export class UsuarioService {
 
       const { sqlMessage } = error;
       throw new ConflictException(sqlMessage ?? `No fue posible actualizar al usuario con email ${usuario.email}`);
+
     } finally {
       await queryRunner.release();
     }
-    return updateUsuarioDto;
+    return await this.findOne(idUsuario);
   }
 
   /**
