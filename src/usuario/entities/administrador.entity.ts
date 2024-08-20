@@ -2,7 +2,7 @@ import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Usuario } from "./usuario.entity";
 
 
-@Entity()
+@Entity('admon_usuario')
 export class Administrador {
     @PrimaryGeneratedColumn()
     idAdministrador?: number;

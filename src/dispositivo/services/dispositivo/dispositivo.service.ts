@@ -12,11 +12,13 @@ import { DispositivoResponse } from 'src/dispositivo/models/dispositivo-response
 import { Sensor } from 'src/dispositivo/entities/sensor.entity';
 import { Dispositivo_Usuario } from 'src/dispositivo/entities/disp_usuario.entity';
 import { UsuarioService } from 'src/usuario/usuario.service';
+import { Ubicacion_Dispositivo } from 'src/dispositivo/entities/ubi_dipositivo.entity';
 
 @Injectable()
 export class DispositivoService {
   constructor(
     @InjectRepository(Dispositivo) private dispositivoRepository: Repository<Dispositivo>,
+    @InjectRepository(Ubicacion_Dispositivo) private ubiDispRepository: Repository<Ubicacion_Dispositivo>,
     private dataSource: DataSource,
     private readonly disp_sensorService: DisSensorService,
     private readonly disp_usuarioService: DisUsuarioService,
@@ -31,7 +33,7 @@ export class DispositivoService {
    */
   async create(createDispositivoDto: CreateDispositivoDto) {
     const { sensores, ...disp } = createDispositivoDto;
-    const dispositivo: Dispositivo = {...disp};
+    const dispositivo: Dispositivo = { ...disp };
 
     const queryRunner = this.dataSource.createQueryRunner();
 
@@ -45,7 +47,7 @@ export class DispositivoService {
 
       // Registra la relación entre los sensores y el dispositivo, los sensores deben estár previamente registrados
       for (const sensor of sensores) {
-        const relacion: Dispositivo_Sensor = {tipo: sensor.tipo, idDispositivo: dispositivo.idDispositivo};
+        const relacion: Dispositivo_Sensor = { tipo: sensor.tipo, idDispositivo: dispositivo.idDispositivo };
         await queryRunner.manager.insert<Dispositivo_Sensor>(Dispositivo_Sensor, relacion)
       }
 
@@ -60,7 +62,7 @@ export class DispositivoService {
     } finally {
       await queryRunner.release();
     }
-    
+
     return createDispositivoDto;
   }
 
@@ -71,12 +73,12 @@ export class DispositivoService {
   async findAll(): Promise<DispositivoResponse[]> {
     const dispositivoList: DispositivoResponse[] = [];
     const dispositivos = await this.dispositivoRepository.find();
-    
+
     for (const dispositivo of dispositivos) {
       // Completando la información del dispositivo y los sensores
       dispositivoList.push(await this.buildDispositivoResponse(dispositivo))
     }
-    
+
     return dispositivoList;
   }
 
@@ -89,19 +91,19 @@ export class DispositivoService {
     let dispositivoList: DispositivoResponse[] = [];
     // Obteniendo la información de los dispositivos relacionados con el usuario
     const relaciones = await this.disp_usuarioService.findDispositivosByUsuario(idUsuario);
-    
+
     try {
       const dispositivos: Dispositivo[] = [];
-      
+
       for (const relacion of relaciones) {
         // Intentando obtener la información del dispositio desde la base de datos, en caso de fallar continua con el siguiente registro
         try {
-          dispositivos.push( await this.findOne(relacion.idDispositivo) );
-        } catch (error) {}
+          dispositivos.push(await this.findOne(relacion.idDispositivo));
+        } catch (error) { }
       }
-      
+
       // Completando la información de los dispositivos
-      dispositivoList = await Promise.all( dispositivos.map( dispositivo => this.buildDispositivoResponse(dispositivo) ) );
+      dispositivoList = await Promise.all(dispositivos.map(dispositivo => this.buildDispositivoResponse(dispositivo)));
 
     } catch (error) {
       throw new ConflictException(error);
@@ -117,7 +119,7 @@ export class DispositivoService {
    * @throws NotFoundException en caso de no encontrar la MAC del dispositivo registrada
    */
   async findOne(idDispositivo: string): Promise<Dispositivo> {
-    const dispositivo = await this.dispositivoRepository.findOneBy({idDispositivo});
+    const dispositivo = await this.dispositivoRepository.findOneBy({ idDispositivo });
 
     if (!dispositivo) {
       throw new NotFoundException(`No se encontró Dispositivo con el ID ${idDispositivo}`);
@@ -134,17 +136,17 @@ export class DispositivoService {
    * @throws Conflict Exception, en caso del algun error durante la actualización, NotFound Exception, en caso de que no se encuentre el dispositivo
    */
   async update(idDispositivo: string, updateDispositivoDto: UpdateDispositivoDto) {
-    const {sensores,...device} = await this.buildDispositivoResponse(await this.findOne(idDispositivo));
+    const { sensores, ...device } = await this.buildDispositivoResponse(await this.findOne(idDispositivo));
 
-    const { idUsuario, sensores:newSensorList, ...dispositivo } = updateDispositivoDto;
-    
+    const { idUsuario, sensores: newSensorList, ...dispositivo } = updateDispositivoDto;
+
     const queryRunner = this.dataSource.createQueryRunner();
 
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      
+
       // Creando la relación entre el dispositivo y algún usuario si este fue incluido en el cuerpo de la petición
       if (idUsuario && idUsuario > 0) {
         // Validando si el usuario existe, esto lanzará una excepción en caso de no existir el usuario
@@ -155,9 +157,9 @@ export class DispositivoService {
 
         // Si la relación no existe entonces se crea
         if (!relacion.map(rel => rel.idUsuario).includes(idUsuario)) {
-          await queryRunner.manager.insert<Dispositivo_Usuario>(Dispositivo_Usuario, {idUsuario, idDispositivo});
+          await queryRunner.manager.insert<Dispositivo_Usuario>(Dispositivo_Usuario, { idUsuario, idDispositivo });
         }
-        
+
       }
 
       // Revisando si hay cambio en la lista de sensores del dispositivo
@@ -168,21 +170,27 @@ export class DispositivoService {
         // Añadiendo los sensores nuevos
         for (const sensor of sensoresToAdd) {
           const { tipo } = sensor;
-          await queryRunner.manager.insert<Dispositivo_Sensor>(Dispositivo_Sensor, {tipo, idDispositivo});
+          await queryRunner.manager.insert<Dispositivo_Sensor>(Dispositivo_Sensor, { tipo, idDispositivo });
         }
 
         // Revisando si hay algún sensor a remover
         const sensoresToRemove = sensores.filter(sensor => !newSensorList.map(s => s.tipo).includes(sensor.tipo))
-        
+
         // Eliminando los sensores que ya no fueron incluidos en la lista de sensores
         for (const sensor of sensoresToRemove) {
           const { tipo } = sensor;
-          await queryRunner.manager.delete<Dispositivo_Sensor>(Dispositivo_Sensor, {idDispositivo, tipo});
+          await queryRunner.manager.delete<Dispositivo_Sensor>(Dispositivo_Sensor, { idDispositivo, tipo });
         }
       }
 
       // finalmente se actualiza la información del dipositivo
-      await queryRunner.manager.update<Dispositivo>(Dispositivo, {idDispositivo}, dispositivo);
+      if (updateDispositivoDto.ubicacion) {
+        const { ubicacion:ubi_especifica, icon:ubicacion, idDispositivo } = updateDispositivoDto;
+        this.ubiDispRepository.insert({ubicacion, ubi_especifica, idDispositivo})
+
+      }
+
+      await queryRunner.manager.update<Dispositivo>(Dispositivo, { idDispositivo }, dispositivo);
 
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -230,7 +238,7 @@ export class DispositivoService {
       // Al final se elimina la información del dispositivo para evitar incongruencia en la base de datos
       await queryRunner.manager.delete<Dispositivo>(Dispositivo, dispositivo);
     } catch (error) {
-      
+
       await queryRunner.rollbackTransaction();
       await queryRunner.release();
 
@@ -259,8 +267,8 @@ export class DispositivoService {
     try {
       if (relacion.map(rel => rel.idUsuario).includes(idUsuario)) {
         console.log("Eliminando la relacióm");
-        
-        await this.disp_usuarioService.removeDispositivoFromUsuario({idUsuario, idDispositivo});
+
+        await this.disp_usuarioService.removeDispositivoFromUsuario({ idUsuario, idDispositivo });
       }
     } catch (error) {
       const { sqlMessage } = error;
@@ -279,10 +287,10 @@ export class DispositivoService {
   async buildDispositivoResponse(dispositivo: Dispositivo): Promise<DispositivoResponse> {
     const relaciones = await this.disp_sensorService.findDispositivoSensores(dispositivo.idDispositivo);
 
-    const sensores: Sensor[] = await Promise.all( relaciones.map((relacion) => {
+    const sensores: Sensor[] = await Promise.all(relaciones.map((relacion) => {
       return this.sensorService.findOne(relacion.tipo);
-    }) )
+    }))
 
-    return {...dispositivo, sensores}
+    return { ...dispositivo, sensores }
   }
 }

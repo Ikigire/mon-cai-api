@@ -8,6 +8,7 @@ import { Administrador } from './entities/administrador.entity';
 import * as Bcrypt from 'bcryptjs';
 import { LoginDto } from './dto/login.dto';
 import { MakeAdminDto } from './dto/make-admin.dto';
+import { Administrador2 } from './entities/administrador2.entity';
 
 @Injectable()
 export class UsuarioService {
@@ -15,6 +16,7 @@ export class UsuarioService {
   constructor(
     @InjectRepository(Usuario) private usuarioRepository: Repository<Usuario>,
     @InjectRepository(Administrador) private adminRepository: Repository<Administrador>,
+    @InjectRepository(Administrador2) private admin2Respository: Repository<Administrador2>,
     private dataSource: DataSource
   ) { }
 
@@ -52,6 +54,7 @@ export class UsuarioService {
       if (isAdmin) {
         const { idUsuario } = usuario;
         let admin: Administrador = { idUsuario };
+        await this.admin2Respository.insert(newUsuario);
 
         // Creando el nuevo registro de administrador
         await queryRunner.manager.insert<Administrador>(Administrador, admin);
@@ -197,7 +200,9 @@ export class UsuarioService {
     if (admin) {
       try {
         const { idAdministrador } = admin;
-        this.adminRepository.delete({ idAdministrador });
+        await this.adminRepository.delete({ idAdministrador });
+        const { email } = await this.findOne(idUsuario)
+        await this.admin2Respository.delete({email});
       } catch (error) {
         const { sqlMessage } = error;
         throw new ConflictException(sqlMessage ?? `No fue possible hacer que el usuario con el ID ${idUsuario} sea administrador`)
@@ -209,6 +214,8 @@ export class UsuarioService {
 
     try {
       await this.adminRepository.insert({ idUsuario });
+      const { isAdmin, ...user } = await this.findOne(idUsuario);
+      await this.admin2Respository.insert(user);
     } catch (error) {
       const { sqlMessage } = error;
       throw new ConflictException(sqlMessage ?? `No fue possible hacer que el usuario con el ID ${idUsuario} sea administrador`)

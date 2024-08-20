@@ -9,6 +9,8 @@ import { Dispositivo } from './dispositivo/entities/dispositivo.entity';
 import { Sensor } from './dispositivo/entities/sensor.entity';
 import { Dispositivo_Sensor } from './dispositivo/entities/dip_sensor.entity';
 import { Dispositivo_Usuario } from './dispositivo/entities/disp_usuario.entity';
+import { Ubicacion_Dispositivo } from './dispositivo/entities/ubi_dipositivo.entity';
+import { Administrador2 } from './usuario/entities/administrador2.entity';
 
 @Module({
   imports: [
@@ -20,7 +22,7 @@ import { Dispositivo_Usuario } from './dispositivo/entities/disp_usuario.entity'
       username: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DBNAME,
-      entities: [Usuario, Administrador, Dispositivo, Sensor, Dispositivo_Sensor, Dispositivo_Usuario],
+      entities: [Usuario, Administrador, Dispositivo, Sensor, Dispositivo_Sensor, Dispositivo_Usuario, Ubicacion_Dispositivo, Administrador2],
       synchronize: true,
     }),
     UsuarioModule,

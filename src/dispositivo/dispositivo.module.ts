@@ -11,12 +11,13 @@ import { SensorService } from './services/sensor/sensor/sensor.service';
 import { DisSensorService } from './services/dis-sensor/dis-sensor.service';
 import { DisUsuarioService } from './services/dis-usuario/dis-usuario.service';
 import { UsuarioModule } from 'src/usuario/usuario.module';
+import { Ubicacion_Dispositivo } from './entities/ubi_dipositivo.entity';
 
 @Module({
   controllers: [DispositivoController, SensorController],
   providers: [DispositivoService, SensorService, DisSensorService, DisUsuarioService],
   imports: [
-    TypeOrmModule.forFeature([Dispositivo, Sensor, Dispositivo_Sensor, Dispositivo_Usuario]),
+    TypeOrmModule.forFeature([Dispositivo, Sensor, Dispositivo_Sensor, Dispositivo_Usuario, Ubicacion_Dispositivo]),
     UsuarioModule
   ],
   exports: [TypeOrmModule]

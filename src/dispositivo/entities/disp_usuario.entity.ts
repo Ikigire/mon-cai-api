@@ -3,7 +3,7 @@ import { Dispositivo } from "./dispositivo.entity";
 import { Usuario } from "src/usuario/entities/usuario.entity";
 
 
-@Entity()
+@Entity('disp_usuario')
 export class Dispositivo_Usuario {
 
     @PrimaryGeneratedColumn()

@@ -2,7 +2,7 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Dispositivo } from "./dispositivo.entity";
 import { Sensor } from "./sensor.entity";
 
-@Entity()
+@Entity('disp_sensor')
 export class Dispositivo_Sensor {
 
     @PrimaryGeneratedColumn()
