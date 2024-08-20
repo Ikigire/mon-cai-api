@@ -154,9 +154,11 @@ export class DispositivoService {
 
         // Revisando si ya exite alguna relación entre el usuario y el dispositivo
         const relacion = await this.disp_usuarioService.findDispositivosByUsuario(idUsuario);
+        console.log(relacion);
+        
 
         // Si la relación no existe entonces se crea
-        if (!relacion.map(rel => rel.idUsuario).includes(idUsuario)) {
+        if (!relacion.map(rel => rel.idDispositivo).includes(dispositivo.idDispositivo)) {
           await queryRunner.manager.insert<Dispositivo_Usuario>(Dispositivo_Usuario, { idUsuario, idDispositivo });
         }
 

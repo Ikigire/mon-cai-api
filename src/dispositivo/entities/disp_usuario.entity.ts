@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToMany, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Dispositivo } from "./dispositivo.entity";
 import { Usuario } from "src/usuario/entities/usuario.entity";
 
@@ -10,10 +10,10 @@ export class Dispositivo_Usuario {
     id?: number;
 
     @Column()
-    @ManyToMany( type => Dispositivo, dispositivo => dispositivo.idDispositivo )
+    @OneToMany( type => Dispositivo, dispositivo => dispositivo.idDispositivo )
     idDispositivo: string;
 
     @Column()
-    @ManyToMany( type => Usuario, usuario => usuario.idUsuario )
+    @OneToMany( type => Usuario, usuario => usuario.idUsuario )
     idUsuario: number;
 }
