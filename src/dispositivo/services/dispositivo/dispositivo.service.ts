@@ -136,6 +136,8 @@ export class DispositivoService {
    * @throws Conflict Exception, en caso del algun error durante la actualización, NotFound Exception, en caso de que no se encuentre el dispositivo
    */
   async update(idDispositivo: string, updateDispositivoDto: UpdateDispositivoDto) {
+    console.log("\n\nPetición recibida");
+    
     const { sensores, ...device } = await this.buildDispositivoResponse(await this.findOne(idDispositivo));
 
     const { idUsuario, sensores: newSensorList, ...dispositivo } = updateDispositivoDto;
@@ -159,7 +161,7 @@ export class DispositivoService {
         
         // Si la relación no existe entonces se crea
         if (!relacion.map(rel => rel.idDispositivo).includes(dispositivo.idDispositivo)) {
-          console.log("Agrgando la relación");
+          console.log("Agregando la relación");
           await queryRunner.manager.insert<Dispositivo_Usuario>(Dispositivo_Usuario, { idUsuario, idDispositivo });
         }
         
@@ -211,7 +213,7 @@ export class DispositivoService {
       await queryRunner.release();
     }
     
-    console.log("Returnando los cambios");
+    console.log("\nReturnando los cambios");
     return (await this.buildDispositivoResponse(dispositivo))
   }
 
