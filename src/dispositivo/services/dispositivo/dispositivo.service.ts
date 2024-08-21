@@ -154,57 +154,64 @@ export class DispositivoService {
 
         // Revisando si ya exite alguna relación entre el usuario y el dispositivo
         const relacion = await this.disp_usuarioService.findDispositivosByUsuario(idUsuario);
-        console.log(relacion);
+        console.log("Relaciones cargadas");
         
-
+        
         // Si la relación no existe entonces se crea
         if (!relacion.map(rel => rel.idDispositivo).includes(dispositivo.idDispositivo)) {
+          console.log("Agrgando la relación");
           await queryRunner.manager.insert<Dispositivo_Usuario>(Dispositivo_Usuario, { idUsuario, idDispositivo });
         }
-
+        
       }
-
+      
       // Revisando si hay cambio en la lista de sensores del dispositivo
       if (newSensorList) {
+        console.log("Revisando la lista de sensores");
         // extrayendo la lista de sensores nuevos
         const sensoresToAdd = newSensorList.filter(sensor => !sensores.map(s => s.tipo).includes(sensor.tipo));
-
+        
         // Añadiendo los sensores nuevos
         for (const sensor of sensoresToAdd) {
+          console.log("Agregando sensor" + sensor.tipo);
           const { tipo } = sensor;
           await queryRunner.manager.insert<Dispositivo_Sensor>(Dispositivo_Sensor, { tipo, idDispositivo });
         }
-
+        
         // Revisando si hay algún sensor a remover
         const sensoresToRemove = sensores.filter(sensor => !newSensorList.map(s => s.tipo).includes(sensor.tipo))
-
+        
         // Eliminando los sensores que ya no fueron incluidos en la lista de sensores
         for (const sensor of sensoresToRemove) {
+          console.log("Eliminando sensor" + sensor.tipo);
           const { tipo } = sensor;
           await queryRunner.manager.delete<Dispositivo_Sensor>(Dispositivo_Sensor, { idDispositivo, tipo });
         }
       }
-
+      
       // finalmente se actualiza la información del dipositivo
-      if (updateDispositivoDto.ubicacion) {
+      if (updateDispositivoDto.ubicacion !== device.ubicacion || updateDispositivoDto.alias !== device.alias || updateDispositivoDto.icon !== device.icon) {
+        console.log("Actualizando el dipositivo");
         const { ubicacion:ubi_especifica, icon:ubicacion, idDispositivo } = updateDispositivoDto;
         this.ubiDispRepository.insert({ubicacion, ubi_especifica, idDispositivo})
-
+        
+        await queryRunner.manager.update<Dispositivo>(Dispositivo, { idDispositivo }, dispositivo);
       }
-
-      await queryRunner.manager.update<Dispositivo>(Dispositivo, { idDispositivo }, dispositivo);
-
     } catch (error) {
+      console.log("Hubo un error: revirtiendo los cambios");
+      
       await queryRunner.rollbackTransaction();
       await queryRunner.release();
-
+      
       const { sqlMessage, message } = error;
       throw new ConflictException(sqlMessage ?? message ?? `No fue possible actualizar la información del dispositivo`)
     } finally {
+      console.log("Completando los cambios");
       await queryRunner.commitTransaction();
       await queryRunner.release();
     }
-
+    
+    console.log("Returnando los cambios");
     return (await this.buildDispositivoResponse(dispositivo))
   }
 
